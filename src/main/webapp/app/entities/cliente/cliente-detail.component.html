@@ -1,0 +1,41 @@
+
+<div *ngIf="cliente">
+    <h2><span jhiTranslate="pdanyosApp.cliente.detail.title">Cliente</span> {{cliente.id}}</h2>
+    <hr>
+    <jhi-alert-error></jhi-alert-error>
+    <dl class="row-md jh-entity-details">
+        <dt><span jhiTranslate="pdanyosApp.cliente.idCliente">Id Cliente</span></dt>
+        <dd>
+            <span>{{cliente.idCliente}}</span>
+        </dd>
+        <dt><span jhiTranslate="pdanyosApp.cliente.nombre">Nombre</span></dt>
+        <dd>
+            <span>{{cliente.nombre}}</span>
+        </dd>
+        <dt><span jhiTranslate="pdanyosApp.cliente.apellido">Apellido</span></dt>
+        <dd>
+            <span>{{cliente.apellido}}</span>
+        </dd>
+        <dt><span jhiTranslate="pdanyosApp.cliente.segundoNombre">Segundo Nombre</span></dt>
+        <dd>
+            <span>{{cliente.segundoNombre}}</span>
+        </dd>
+        <dt><span jhiTranslate="pdanyosApp.cliente.segundoApellido">Segundo Apellido</span></dt>
+        <dd>
+            <span>{{cliente.segundoApellido}}</span>
+        </dd>
+    </dl>
+
+    <button type="submit"
+            (click)="previousState()"
+            class="btn btn-info">
+        <span class="fa fa-arrow-left"></span>&nbsp;<span jhiTranslate="entity.action.back"> Back</span>
+    </button>
+
+    <button type="button"
+            [routerLink]="['/', { outlets: { popup: 'cliente/'+ cliente.id + '/edit'} }]"
+            replaceUrl="true"
+            class="btn btn-primary">
+        <span class="fa fa-pencil"></span>&nbsp;<span jhiTranslate="entity.action.edit"> Edit</span>
+    </button>
+</div>
