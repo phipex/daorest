@@ -1,6 +1,6 @@
 package co.com.ies.test.pdanyos.repository;
 
-import co.com.ies.test.pdanyos.domain.Cliente;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -12,6 +12,8 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.List;
+
 /**
  * Created by root on 1/07/17.
  */
@@ -25,9 +27,14 @@ public abstract class AbstractRestRepository<T,ID extends Serializable> implemen
 
     public AbstractRestRepository(Class<T> clazz) {
         this.clazz = clazz;
+
     }
 
+    public abstract void validarCredenciales();
+
     public abstract Logger getLog();
+
+    public abstract CredencialesRest getCredenciales();
 
     T postRequest(T request){
         return postPutRequest(request, HttpMethod.POST );
@@ -37,12 +44,21 @@ public abstract class AbstractRestRepository<T,ID extends Serializable> implemen
         return postPutRequest(request, HttpMethod.PUT);
     }
 
+    public List<T> getRequest(){
+        String resourcePath = getCredenciales().getResourceName();
+        String pathApiRoot = getCredenciales().getUrl();
+        String resourceUrl = pathApiRoot + resourcePath;
+        getLog().debug(resourceUrl);
+        return requestAccion(resourceUrl,this.clazz);
+
+    }
+
 
     public T getRequest(Long idRequest){
-        String resourcePath = "clientes";//todo ingresar los datos en un objeto **************
-        String pathApiRoot = "http://localhost:8080/api/";//todo ingresar los datos en un objeto **************
+        String resourcePath = getCredenciales().getResourceName();
+        String pathApiRoot = getCredenciales().getUrl();
         String resourceUrl = pathApiRoot + resourcePath + "/"+ idRequest;
-
+        getLog().debug(resourceUrl);
         T tNewResource = requestAccion(null, HttpMethod.GET, resourceUrl);
 
         return tNewResource;
@@ -50,8 +66,8 @@ public abstract class AbstractRestRepository<T,ID extends Serializable> implemen
 
     private T postPutRequest(T request, HttpMethod post){
 
-        String resourcePath = "clientes";//todo ingresar los datos en un objeto **************
-        String pathApiRoot = "http://localhost:8080/api/";//todo ingresar los datos en un objeto **************
+        String resourcePath = getCredenciales().getResourceName();
+        String pathApiRoot = getCredenciales().getUrl();
         String resourceUrl = pathApiRoot + resourcePath;
 
         T tNewResource = requestAccion(request, post, resourceUrl);
@@ -60,11 +76,58 @@ public abstract class AbstractRestRepository<T,ID extends Serializable> implemen
     }
 
     private T requestAccion(T request, HttpMethod post, String resourceUrl) {
-        RestTemplate restTemplate = new RestTemplate();
+
+        final StringBuilder newResource = new StringBuilder();
         ObjectMapper mapper = new ObjectMapper();
         String jsonInString = null;
-        final StringBuilder newResource = new StringBuilder();
+        try {
+            jsonInString = mapper.writeValueAsString(request);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+
+
         T tNewResource = null;
+        requestAccion(post, resourceUrl, newResource, jsonInString);
+
+        try {
+
+            tNewResource = mapper.readValue(newResource.toString(), clazz);
+            getLog().debug("--------- prueba de cliente: {}",tNewResource);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return tNewResource;
+    }
+
+    private List<T> requestAccion( String resourceUrl, Class<?> target ) {
+
+        final StringBuilder newResource = new StringBuilder();
+        ObjectMapper mapper = new ObjectMapper();
+
+        List<T> tNewResource = null;
+        requestAccion(HttpMethod.GET, resourceUrl, newResource, null);
+
+        try {
+
+
+            tNewResource = mapper.readValue(newResource.toString(),mapper .getTypeFactory().constructCollectionType(List.class, Class.forName(target.getName())));
+            getLog().debug("--------- prueba de cliente: {}",tNewResource);
+
+            Object obj = tNewResource.get(0);
+
+            getLog().info("clase "+obj.getClass().getName());
+
+        } catch (IOException | ClassNotFoundException  e) {
+            e.printStackTrace();
+        }
+        return tNewResource;
+    }
+
+    private void requestAccion(HttpMethod post, String resourceUrl, StringBuilder newResource, String jsonInString) {
+        RestTemplate restTemplate = new RestTemplate();
+
+
         //Object request = new Object();//************
 
         AbstractRestCallback restCallback = new AbstractRestCallback() {
@@ -73,15 +136,12 @@ public abstract class AbstractRestRepository<T,ID extends Serializable> implemen
                 HttpStatus statusCode = stringResponseEntity.getStatusCode();
                 String bodyResponse = stringResponseEntity.getBody();
 
-
-
                 final String responseMsg = "crearRecargaWPlay::status=" + statusCode.name() + ",bodyResponse"
                     + bodyResponse;
 
                 getLog().info(responseMsg);
 
                 if (HttpStatus.OK.equals(statusCode) || HttpStatus.CREATED.equals(statusCode)) {
-
 
                     getLog().info("request correcto************* "+newResource+"****");
                     newResource.append(bodyResponse);
@@ -102,16 +162,18 @@ public abstract class AbstractRestRepository<T,ID extends Serializable> implemen
             }
         };
 
-
         try {
-
-
-            jsonInString = mapper.writeValueAsString(request);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("Authorization","Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhZG1pbiIsImF1dGgiOiJST0xFX0FETUlOLFJPTEVfVVNFUiIsImV4cCI6MTQ5OTAxOTc1OX0.GOSqAFmFO1iwANJzOrBSjP3NrT86oLTOEBVu4M9TtxpV_knaXYX4hXbe_TUUo2rueuCFT-5x_WGNKm9fNDmTEQ");
-            HttpEntity<String> entity = new HttpEntity<String>(jsonInString, headers);
+            headers.set("Authorization","Bearer "+getCredenciales().getToken());
+            HttpEntity<String> entity = null;
+
+            if(jsonInString != null){
+                entity = new HttpEntity<String>(jsonInString, headers);
+            }else{
+                entity = new HttpEntity<String>( headers);
+            }
 
             ResponseEntity<String> response = getStringResponseEntity(post,restTemplate, resourceUrl, entity);
             restCallback.callOnSucces(response);
@@ -121,25 +183,15 @@ public abstract class AbstractRestRepository<T,ID extends Serializable> implemen
 
             restCallback.callOnFailStatus(exception);
 
-
         }
-        catch (RestClientException | JsonProcessingException e) {
+        catch (RestClientException e) {
             //e.printStackTrace();
-
             restCallback.callOnFailException(e);
         }
 
         getLog().info("terminar correcto************* "+newResource+"****");
-
-        try {
-
-            tNewResource = mapper.readValue(newResource.toString(), clazz);
-            getLog().debug("--------- prueba de cliente: {}",tNewResource);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return tNewResource;
     }
+
 
     private ResponseEntity<String> getStringResponseEntity(HttpMethod httpMethod , RestTemplate restTemplate, String resourceUrl, HttpEntity<String> entity) {
 
@@ -150,7 +202,46 @@ public abstract class AbstractRestRepository<T,ID extends Serializable> implemen
             return restTemplate.exchange(resourceUrl, HttpMethod.PUT, entity, String.class);
         }
 
-        return restTemplate.getForEntity(resourceUrl, String.class);
+        return restTemplate.exchange(resourceUrl, HttpMethod.GET, entity, String.class);
 
+    }
+
+    public static class CredencialesRest{
+
+        private String url;
+
+        private String token;
+
+        private String resourceName;
+
+        public CredencialesRest(String url, String token, String resourceName) {
+            this.url = url;
+            this.token = token;
+            this.resourceName = resourceName;
+        }
+
+        public String getUrl() {
+            return url;
+        }
+
+        public void setUrl(String url) {
+            this.url = url;
+        }
+
+        public String getToken() {
+            return token;
+        }
+
+        public void setToken(String token) {
+            this.token = token;
+        }
+
+        public String getResourceName() {
+            return resourceName;
+        }
+
+        public void setResourceName(String resourceName) {
+            this.resourceName = resourceName;
+        }
     }
 }

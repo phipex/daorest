@@ -4,6 +4,8 @@ import co.com.ies.test.pdanyos.service.dto.ClienteDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.List;
+
 /**
  * Service Interface for managing Cliente.
  */
@@ -27,7 +29,7 @@ public interface ClienteService {
      *  @return the list of entities
      */
     Page<ClienteDTO> findAll(Pageable pageable);
-
+    List<ClienteDTO> findAll2();
     /**
      *  Get the "id" cliente.
      *
@@ -35,7 +37,7 @@ public interface ClienteService {
      *  @return the entity
      */
     ClienteDTO findOne(Long id);
-
+    ClienteDTO findOne2(Long id);
     /**
      *  Delete the "id" cliente.
      *

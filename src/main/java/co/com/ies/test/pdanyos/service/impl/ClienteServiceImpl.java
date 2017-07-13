@@ -13,6 +13,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
+
 
 /**
  * Service Implementation for managing Cliente.
@@ -68,6 +71,20 @@ public class ClienteServiceImpl implements ClienteService{
     }
 
     /**
+     *  Get one cliente by id.
+     *
+     *  @param id the id of the entity
+     *  @return the entity
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public ClienteDTO findOne2(Long id) {
+        log.debug("Request to get Cliente : {}", id);
+        Cliente cliente = clienteRestRepository.findOne(id);
+        return clienteMapper.toDto(cliente);
+    }
+
+    /**
      *  Get all the clientes.
      *
      *  @param pageable the pagination information
@@ -79,6 +96,30 @@ public class ClienteServiceImpl implements ClienteService{
         log.debug("Request to get all Clientes");
         return clienteRepository.findAll(pageable)
             .map(clienteMapper::toDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClienteDTO> findAll2() {
+        log.debug("Request to get all Clientes");
+        final List<co.com.ies.test.pdanyos.domain.Cliente> all = clienteRestRepository.findAll();
+        log.debug(">>"+all.getClass().getName()+">>"+all);
+
+        Object obj = all.get(0);
+
+        log.debug("clase "+obj.getClass().getName());
+        List<ClienteDTO> allDto = new ArrayList<>();
+        for (int i = 0; i < all.size(); i++) {
+            Cliente cliente = all.get(i);
+
+            allDto.add(clienteMapper.toDto(cliente));
+        }
+
+        for(co.com.ies.test.pdanyos.domain.Cliente cliente: all)
+        {
+            allDto.add(clienteMapper.toDto(cliente));
+        }
+        return allDto;
     }
 
     /**

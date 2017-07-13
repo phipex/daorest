@@ -59,7 +59,13 @@ public class ClienteResource {
             .headers(HeaderUtil.createEntityCreationAlert(ENTITY_NAME, result.getId().toString()))
             .body(result);
     }
-
+    /**
+     * POST  /clientes2 : Create a new cliente.
+     *
+     * @param clienteDTO the clienteDTO to create
+     * @return the ResponseEntity with status 201 (Created) and with body the new clienteDTO, or with status 400 (Bad Request) if the cliente has already an ID
+     * @throws URISyntaxException if the Location URI syntax is incorrect
+     */
     @PostMapping("/clientes2")
     @Timed
     public ResponseEntity<ClienteDTO> createCliente2(@Valid @RequestBody ClienteDTO clienteDTO) throws URISyntaxException {
@@ -125,6 +131,19 @@ public class ClienteResource {
     }
 
     /**
+     * GET  /clientes2 : get all the clientes.
+     *
+     * @return the ResponseEntity with status 200 (OK) and the list of clientes in body
+     */
+    @GetMapping("/clientes2")
+    @Timed
+    public ResponseEntity<List<ClienteDTO>> getAllClientes2() {
+        log.debug("REST request to get a page of Clientes");
+        List<ClienteDTO> page = clienteService.findAll2();
+        return ResponseUtil.wrapOrNotFound(Optional.ofNullable(page));
+    }
+
+    /**
      * GET  /clientes/:id : get the "id" cliente.
      *
      * @param id the id of the clienteDTO to retrieve
@@ -135,6 +154,23 @@ public class ClienteResource {
     public ResponseEntity<ClienteDTO> getCliente(@PathVariable Long id) {
         log.debug("REST request to get Cliente : {}", id);
         ClienteDTO clienteDTO = clienteService.findOne(id);
+        return ResponseUtil.wrapOrNotFound(Optional.ofNullable(clienteDTO));
+    }
+
+
+
+
+    /**
+     * GET  /clientes2/:id : get the "id" cliente.
+     *
+     * @param id the id of the clienteDTO to retrieve
+     * @return the ResponseEntity with status 200 (OK) and with body the clienteDTO, or with status 404 (Not Found)
+     */
+    @GetMapping("/clientes2/{id}")
+    @Timed
+    public ResponseEntity<ClienteDTO> getCliente2(@PathVariable Long id) {
+        log.debug("REST request to get Cliente : {}", id);
+        ClienteDTO clienteDTO = clienteService.findOne2(id);
         return ResponseUtil.wrapOrNotFound(Optional.ofNullable(clienteDTO));
     }
 
